@@ -3,8 +3,7 @@ import { fetchImageViaCurl, requiresCurl } from "./curlClient.js";
 
 const IMAGE_ACCEPT =
   "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
-const USER_AGENT =
-  "Mozilla/5.0 (compatible; PriceHistoryImageProxy/1.0; +https://proxy.pricehistory.md)";
+const USER_AGENT = "Mozilla/5.0 PriceHistoryImageProxy/1.0";
 
 export function validateProxyUrl(inputUrl) {
   let url;
@@ -34,7 +33,6 @@ export async function fetchImage(url) {
   const response = await fetch(url, {
     headers: {
       accept: IMAGE_ACCEPT,
-      "accept-language": "ro-RO,ro;q=0.9,en-US;q=0.7,en;q=0.6",
       "user-agent": USER_AGENT,
       referer: `${url.protocol}//${url.host}/`
     },
