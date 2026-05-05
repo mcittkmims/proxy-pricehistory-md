@@ -1,12 +1,3 @@
-const DEFAULT_ALLOWED_DOMAINS = [
-  "darwin.md",
-  "enter.online",
-  "maximum.md",
-  "smart.md",
-  "bomba.md",
-  "ultra.md"
-];
-
 const parseList = (value, fallback) => {
   const items = String(value || "")
     .split(",")
@@ -25,5 +16,6 @@ export const config = {
   cacheControl: process.env.CACHE_CONTROL || "public, max-age=86400, stale-while-revalidate=604800",
   fetchTimeoutMs: parseNumber(process.env.FETCH_TIMEOUT_MS, 10000),
   maxBytes: parseNumber(process.env.MAX_BYTES, 5 * 1024 * 1024),
-  allowedDomains: parseList(process.env.ALLOWED_HOSTS, DEFAULT_ALLOWED_DOMAINS)
+  curlImpersonateBin: process.env.CURL_IMPERSONATE_BIN || "",
+  curlDomains: parseList(process.env.CURL_DOMAINS, ["bomba.md"])
 };

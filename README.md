@@ -24,8 +24,11 @@ PORT=8081
 CACHE_CONTROL=public, max-age=86400, stale-while-revalidate=604800
 FETCH_TIMEOUT_MS=10000
 MAX_BYTES=5242880
-ALLOWED_HOSTS=darwin.md,www.darwin.md,enter.online,www.enter.online,maximum.md,www.maximum.md,smart.md,www.smart.md,bomba.md,www.bomba.md,ultra.md,www.ultra.md,img.ultra.md
+CURL_IMPERSONATE_BIN=
+CURL_DOMAINS=bomba.md
 ```
+
+If a store image host is protected by Cloudflare or similar bot checks, plain Node `fetch` may be rejected. In that case, point `CURL_IMPERSONATE_BIN` at a `curl-impersonate` binary and keep that store domain in `CURL_DOMAINS`.
 
 ## Health
 

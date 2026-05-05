@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { validateProxyUrl } from "../src/proxy.js";
+import { requiresCurl } from "../src/curlClient.js";
 
 test("validateProxyUrl accepts supported store hosts", () => {
   assert.equal(
@@ -15,12 +16,9 @@ test("validateProxyUrl accepts supported store hosts", () => {
     validateProxyUrl("https://cdn.maximum.md/images/example.jpg").hostname,
     "cdn.maximum.md"
   );
-});
-
-test("validateProxyUrl rejects unsupported hosts", () => {
-  assert.throws(
-    () => validateProxyUrl("https://example.com/image.jpg"),
-    /Host is not allowed/
+  assert.equal(
+    validateProxyUrl("https://example.com/image.jpg").hostname,
+    "example.com"
   );
 });
 
@@ -29,4 +27,10 @@ test("validateProxyUrl rejects invalid schemes", () => {
     () => validateProxyUrl("file:///tmp/image.jpg"),
     /Only http and https/
   );
+});
+
+test("requiresCurl matches configured protected domains and subdomains", () => {
+  assert.equal(requiresCurl("bomba.md"), true);
+  assert.equal(requiresCurl("www.bomba.md"), true);
+  assert.equal(requiresCurl("maximum.md"), false);
 });

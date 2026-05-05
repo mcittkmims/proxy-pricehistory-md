@@ -1,4 +1,5 @@
 import { config } from "./config.js";
+import { fetchImageViaCurl, requiresCurl } from "./curlClient.js";
 
 const IMAGE_ACCEPT =
   "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
@@ -17,15 +18,18 @@ export function validateProxyUrl(inputUrl) {
     throw new Error("Only http and https image URLs are supported");
   }
 
-  const hostname = url.hostname.toLowerCase();
-  if (!isAllowedHost(hostname)) {
-    throw new Error(`Host is not allowed: ${url.hostname}`);
-  }
-
   return url;
 }
 
 export async function fetchImage(url) {
+  if (requiresCurl(url.hostname.toLowerCase())) {
+    const body = await fetchImageViaCurl(url, config.maxBytes);
+    return {
+      body,
+      contentType: inferContentType(url.pathname)
+    };
+  }
+
   const signal = AbortSignal.timeout(config.fetchTimeoutMs);
   const response = await fetch(url, {
     headers: {
@@ -61,12 +65,6 @@ export async function fetchImage(url) {
     body,
     contentType
   };
-}
-
-function isAllowedHost(hostname) {
-  return config.allowedDomains.some((domain) => (
-    hostname === domain || hostname.endsWith(`.${domain}`)
-  ));
 }
 
 function inferContentType(pathname) {
