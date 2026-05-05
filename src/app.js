@@ -1,6 +1,13 @@
 import http from "node:http";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
 import { fetchImage, validateProxyUrl } from "./proxy.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const INDEX_HTML = readFileSync(path.join(__dirname, "..", "public", "index.html"));
 
 function json(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -15,6 +22,15 @@ function json(res, statusCode, payload) {
 export function createServer() {
   return http.createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://localhost");
+
+    if (req.method === "GET" && url.pathname === "/") {
+      res.writeHead(200, {
+        "content-type": "text/html; charset=utf-8",
+        "content-length": INDEX_HTML.byteLength
+      });
+      res.end(INDEX_HTML);
+      return;
+    }
 
     if (req.method === "GET" && url.pathname === "/ping") {
       return json(res, 200, { status: "ok" });

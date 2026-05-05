@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PriceHistory Image Proxy</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f7fb;
+        color: #162033;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        max-width: 720px;
+        width: 100%;
+        background: #ffffff;
+        border: 1px solid #d8e0ee;
+        border-radius: 20px;
+        padding: 32px;
+        box-shadow: 0 18px 48px rgba(22, 32, 51, 0.08);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 2rem;
+      }
+
+      p,
+      li {
+        line-height: 1.6;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: #eef3fb;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+
+      .callout {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        background: #f0f6ff;
+        border: 1px solid #c9ddff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>PriceHistory Image Proxy</h1>
+      <p>
+        This service proxies store-hosted product images for <code>pricehistory.md</code>.
+      </p>
+      <p>
+        Public endpoints:
+      </p>
+      <ul>
+        <li><code>GET /ping</code> returns a health check response.</li>
+        <li><code>GET /proxy?url=...</code> fetches an allowed upstream image and returns it.</li>
+      </ul>
+      <div class="callout">
+        Example:
+        <code>/proxy?url=https%3A%2F%2Fenter.online%2Fimages%2Fexample.webp</code>
+      </div>
+    </main>
+  </body>
+</html>
