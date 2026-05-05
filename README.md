@@ -36,3 +36,12 @@ If a store image host is protected by Cloudflare or similar bot checks, plain No
 GET /ping
 GET /proxy?url=https%3A%2F%2Fenter.online%2Fimages%2Fexample.webp
 ```
+
+## Logs
+
+The app writes daily log files to `logs/app-YYYY-MM-DD.log`.
+
+It records:
+- server startup and fatal server errors
+- rejected proxy requests
+- upstream proxy fetch failures

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
+import { logError, logWarn } from "./logger.js";
 import { fetchImage, validateProxyUrl } from "./proxy.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -42,6 +43,7 @@ export function createServer() {
 
     const inputUrl = url.searchParams.get("url");
     if (!inputUrl) {
+      logWarn("proxy rejected: missing url", { path: url.pathname });
       return json(res, 400, { detail: "Query parameter url is required" });
     }
 
@@ -49,6 +51,10 @@ export function createServer() {
     try {
       imageUrl = validateProxyUrl(inputUrl);
     } catch (error) {
+      logWarn("proxy rejected: invalid url", {
+        url: inputUrl,
+        message: error instanceof Error ? error.message : String(error)
+      });
       return json(res, 400, { detail: error.message });
     }
 
@@ -63,6 +69,10 @@ export function createServer() {
       });
       res.end(image.body);
     } catch (error) {
+      logError("proxy fetch failed", {
+        url: imageUrl.toString(),
+        message: error instanceof Error ? error.message : String(error)
+      });
       return json(res, 502, { detail: error.message });
     }
   });
