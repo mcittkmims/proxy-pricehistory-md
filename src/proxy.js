@@ -18,7 +18,7 @@ export function validateProxyUrl(inputUrl) {
   }
 
   const hostname = url.hostname.toLowerCase();
-  if (!config.allowedHosts.includes(hostname)) {
+  if (!isAllowedHost(hostname)) {
     throw new Error(`Host is not allowed: ${url.hostname}`);
   }
 
@@ -61,6 +61,12 @@ export async function fetchImage(url) {
     body,
     contentType
   };
+}
+
+function isAllowedHost(hostname) {
+  return config.allowedDomains.some((domain) => (
+    hostname === domain || hostname.endsWith(`.${domain}`)
+  ));
 }
 
 function inferContentType(pathname) {

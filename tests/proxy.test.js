@@ -11,6 +11,10 @@ test("validateProxyUrl accepts supported store hosts", () => {
     validateProxyUrl("https://img.ultra.md/product/example.jpg").hostname,
     "img.ultra.md"
   );
+  assert.equal(
+    validateProxyUrl("https://cdn.maximum.md/images/example.jpg").hostname,
+    "cdn.maximum.md"
+  );
 });
 
 test("validateProxyUrl rejects unsupported hosts", () => {
