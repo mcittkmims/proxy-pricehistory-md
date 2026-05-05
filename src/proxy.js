@@ -26,7 +26,7 @@ export async function fetchImage(url) {
     const body = await fetchImageViaCurl(url, config.maxBytes);
     return {
       body,
-      contentType: inferContentType(url.pathname)
+      contentType: sniffImageContentType(body, url.pathname) || inferContentType(url.pathname)
     };
   }
 
@@ -51,20 +51,74 @@ export async function fetchImage(url) {
     throw new Error("Image exceeds maximum allowed size");
   }
 
-  const contentType = response.headers.get("content-type") || inferContentType(url.pathname);
-  if (!contentType.toLowerCase().startsWith("image/")) {
-    throw new Error("Upstream response was not an image");
-  }
-
   const body = Buffer.from(await response.arrayBuffer());
   if (body.byteLength > config.maxBytes) {
     throw new Error("Image exceeds maximum allowed size");
+  }
+
+  const contentType = normalizeImageContentType(
+    response.headers.get("content-type"),
+    body,
+    url.pathname
+  );
+  if (!contentType) {
+    throw new Error("Upstream response was not an image");
   }
 
   return {
     body,
     contentType
   };
+}
+
+function normalizeImageContentType(headerValue, body, pathname) {
+  const raw = (headerValue || "").split(";")[0].trim().toLowerCase();
+  if (raw.startsWith("image/")) {
+    return raw;
+  }
+
+  if (!raw || raw === "application/octet-stream" || raw === "binary/octet-stream") {
+    return sniffImageContentType(body, pathname) || inferContentType(pathname);
+  }
+
+  return null;
+}
+
+function sniffImageContentType(body, pathname) {
+  if (body.byteLength >= 12) {
+    const header = body.subarray(0, 12);
+    const riff = header.subarray(0, 4).toString("ascii");
+    const webp = header.subarray(8, 12).toString("ascii");
+    if (riff === "RIFF" && webp === "WEBP") {
+      return "image/webp";
+    }
+  }
+  if (body.byteLength >= 8) {
+    const png = body.subarray(0, 8);
+    if (png.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+      return "image/png";
+    }
+  }
+  if (body.byteLength >= 3) {
+    const jpeg = body.subarray(0, 3);
+    if (jpeg.equals(Buffer.from([0xff, 0xd8, 0xff]))) {
+      return "image/jpeg";
+    }
+  }
+  if (body.byteLength >= 6) {
+    const gif = body.subarray(0, 6).toString("ascii");
+    if (gif === "GIF87a" || gif === "GIF89a") {
+      return "image/gif";
+    }
+  }
+  const textStart = body.subarray(0, Math.min(body.byteLength, 256)).toString("utf8").trimStart();
+  if (textStart.startsWith("<svg") || textStart.startsWith("<?xml")) {
+    return "image/svg+xml";
+  }
+  const inferred = inferContentType(pathname);
+  return inferred !== "image/jpeg" || pathname.toLowerCase().endsWith(".jpg") || pathname.toLowerCase().endsWith(".jpeg")
+    ? inferred
+    : null;
 }
 
 function inferContentType(pathname) {

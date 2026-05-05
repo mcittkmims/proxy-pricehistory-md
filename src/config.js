@@ -17,5 +17,5 @@ export const config = {
   fetchTimeoutMs: parseNumber(process.env.FETCH_TIMEOUT_MS, 10000),
   maxBytes: parseNumber(process.env.MAX_BYTES, 5 * 1024 * 1024),
   curlImpersonateBin: process.env.CURL_IMPERSONATE_BIN || "",
-  curlDomains: parseList(process.env.CURL_DOMAINS, ["bomba.md"])
+  curlDomains: parseList(process.env.CURL_DOMAINS, [])
 };

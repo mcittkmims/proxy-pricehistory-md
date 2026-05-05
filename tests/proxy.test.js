@@ -30,7 +30,7 @@ test("validateProxyUrl rejects invalid schemes", () => {
 });
 
 test("requiresCurl matches configured protected domains and subdomains", () => {
-  assert.equal(requiresCurl("bomba.md"), true);
-  assert.equal(requiresCurl("www.bomba.md"), true);
+  assert.equal(requiresCurl("bomba.md"), false);
+  assert.equal(requiresCurl("www.bomba.md"), false);
   assert.equal(requiresCurl("maximum.md"), false);
 });
