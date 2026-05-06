@@ -1,11 +1,15 @@
 import http from "node:http";
 import https from "node:https";
 import { config } from "./config.js";
-import { fetchImageViaCurl, requiresCurl } from "./curlClient.js";
 
 const IMAGE_ACCEPT =
   "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
 const USER_AGENT = "Mozilla/5.0 PriceHistoryImageProxy/1.0";
+const DEFAULT_HTTPS_AGENT = new https.Agent();
+const ULTRA_CDN_INSECURE_HTTPS_AGENT = new https.Agent({
+  // Ultra's CDN currently serves an incomplete certificate chain.
+  rejectUnauthorized: false
+});
 
 export function validateProxyUrl(inputUrl) {
   let url;
@@ -23,14 +27,6 @@ export function validateProxyUrl(inputUrl) {
 }
 
 export async function fetchImage(url) {
-  if (requiresCurl(url.hostname.toLowerCase())) {
-    const body = await fetchImageViaCurl(url, config.maxBytes);
-    return {
-      body,
-      contentType: sniffImageContentType(body, url.pathname) || inferContentType(url.pathname)
-    };
-  }
-
   const response = await requestImage(url);
 
   const contentType = normalizeImageContentType(response.contentType, response.body, url.pathname);
@@ -58,7 +54,8 @@ function requestImage(url, redirectCount = 0) {
         accept: IMAGE_ACCEPT,
         "user-agent": USER_AGENT,
         referer: `${url.protocol}//${url.host}/`
-      }
+      },
+      ...(url.protocol === "https:" ? { agent: getHttpsAgent(url.hostname) } : {})
     }, (response) => {
       const statusCode = response.statusCode ?? 502;
 
@@ -113,6 +110,12 @@ function requestImage(url, redirectCount = 0) {
     request.on("error", reject);
     request.end();
   });
+}
+
+function getHttpsAgent(hostname) {
+  return hostname.toLowerCase() === "cdn.ultra.md"
+    ? ULTRA_CDN_INSECURE_HTTPS_AGENT
+    : DEFAULT_HTTPS_AGENT;
 }
 
 function normalizeImageContentType(headerValue, body, pathname) {

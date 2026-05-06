@@ -24,11 +24,10 @@ PORT=8081
 CACHE_CONTROL=public, max-age=86400, stale-while-revalidate=604800
 FETCH_TIMEOUT_MS=10000
 MAX_BYTES=5242880
-CURL_IMPERSONATE_BIN=
-CURL_DOMAINS=
 ```
 
-If a store image host is protected by Cloudflare or similar bot checks, plain Node `fetch` may be rejected. In that case, point `CURL_IMPERSONATE_BIN` at a `curl-impersonate` binary and add that store domain to `CURL_DOMAINS`. By default, the proxy does not use curl-impersonate for any host.
+The proxy uses Node's built-in `http` / `https` client for upstream image requests.
+It also includes one targeted workaround for `cdn.ultra.md`, because that host currently serves an incomplete TLS certificate chain.
 
 ## Health
 
