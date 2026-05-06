@@ -1,3 +1,5 @@
+import http from "node:http";
+import https from "node:https";
 import { config } from "./config.js";
 import { fetchImageViaCurl, requiresCurl } from "./curlClient.js";
 
@@ -29,44 +31,88 @@ export async function fetchImage(url) {
     };
   }
 
-  const signal = AbortSignal.timeout(config.fetchTimeoutMs);
-  const response = await fetch(url, {
-    headers: {
-      accept: IMAGE_ACCEPT,
-      "user-agent": USER_AGENT,
-      referer: `${url.protocol}//${url.host}/`
-    },
-    redirect: "follow",
-    signal
-  });
+  const response = await requestImage(url);
 
-  if (!response.ok) {
-    throw new Error(`Upstream returned ${response.status} ${response.statusText}`);
-  }
-
-  const contentLength = Number.parseInt(response.headers.get("content-length") || "", 10);
-  if (Number.isFinite(contentLength) && contentLength > config.maxBytes) {
-    throw new Error("Image exceeds maximum allowed size");
-  }
-
-  const body = Buffer.from(await response.arrayBuffer());
-  if (body.byteLength > config.maxBytes) {
-    throw new Error("Image exceeds maximum allowed size");
-  }
-
-  const contentType = normalizeImageContentType(
-    response.headers.get("content-type"),
-    body,
-    url.pathname
-  );
+  const contentType = normalizeImageContentType(response.contentType, response.body, url.pathname);
   if (!contentType) {
     throw new Error("Upstream response was not an image");
   }
 
   return {
-    body,
+    body: response.body,
     contentType
   };
+}
+
+function requestImage(url, redirectCount = 0) {
+  return new Promise((resolve, reject) => {
+    if (redirectCount > 5) {
+      reject(new Error("Too many upstream redirects"));
+      return;
+    }
+
+    const transport = url.protocol === "https:" ? https : http;
+    const request = transport.request(url, {
+      method: "GET",
+      headers: {
+        accept: IMAGE_ACCEPT,
+        "user-agent": USER_AGENT,
+        referer: `${url.protocol}//${url.host}/`
+      }
+    }, (response) => {
+      const statusCode = response.statusCode ?? 502;
+
+      if ([301, 302, 303, 307, 308].includes(statusCode)) {
+        const location = response.headers.location;
+        response.resume();
+        if (!location) {
+          reject(new Error(`Upstream redirected without a location header (${statusCode})`));
+          return;
+        }
+        requestImage(new URL(location, url), redirectCount + 1).then(resolve).catch(reject);
+        return;
+      }
+
+      if (statusCode < 200 || statusCode >= 300) {
+        response.resume();
+        reject(new Error(`Upstream returned ${statusCode} ${response.statusMessage || ""}`.trim()));
+        return;
+      }
+
+      const contentLength = Number.parseInt(String(response.headers["content-length"] || ""), 10);
+      if (Number.isFinite(contentLength) && contentLength > config.maxBytes) {
+        response.resume();
+        reject(new Error("Image exceeds maximum allowed size"));
+        return;
+      }
+
+      const chunks = [];
+      let size = 0;
+      response.on("data", (chunk) => {
+        size += chunk.length;
+        if (size > config.maxBytes) {
+          request.destroy(new Error("Image exceeds maximum allowed size"));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      response.on("end", () => {
+        resolve({
+          body: Buffer.concat(chunks),
+          contentType: Array.isArray(response.headers["content-type"])
+            ? response.headers["content-type"][0]
+            : response.headers["content-type"] || ""
+        });
+      });
+      response.on("error", reject);
+    });
+
+    request.setTimeout(config.fetchTimeoutMs, () => {
+      request.destroy(new Error("Upstream request timed out"));
+    });
+    request.on("error", reject);
+    request.end();
+  });
 }
 
 function normalizeImageContentType(headerValue, body, pathname) {
